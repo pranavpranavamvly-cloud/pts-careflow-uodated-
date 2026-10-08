@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CareFlow — AI-Assisted Healthcare Availability & Emergency Coordination</title>
+  <meta name="description" content="Check live hospital crowds, doctor waiting times, upfront costs, medicine & blood stock, and emergency routing before you go.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="theme-light">
+  <!-- Top Global Banner for Prototype Disclaimer -->
+  <aside class="disclaimer-banner" role="alert">
+    <div class="disclaimer-content">
+      <span class="badge-disclaimer">SIMULATED PROTOTYPE</span>
+      <p><strong>Notice:</strong> Prototype demonstration using simulated data. Waiting times, fees, bed availability, blood, and medicine stocks are simulated for illustration and must be verified directly with facilities.</p>
+    </div>
+    <button class="banner-close" aria-label="Dismiss disclaimer" onclick="this.parentElement.style.display='none'">✕</button>
+  </aside>
+
+  <!-- Main Navigation Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <!-- Brand Logo -->
+      <div class="brand-group">
+        <a href="#home" class="brand-logo" onclick="app.switchView('home')">
+          <div class="logo-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+              <path d="M12 5v14"/>
+              <path d="M5 12h14"/>
+            </svg>
+          </div>
+          <div class="logo-text">
+            <span class="logo-name">CareFlow</span>
+            <span class="logo-tag">AI Healthcare Radar</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Location Picker Widget -->
+      <div class="location-bar" title="Change your simulated current location">
+        <div class="location-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+        </div>
+        <div class="location-info">
+          <span class="loc-label">Location</span>
+          <select id="userLocationSelect" class="loc-dropdown" onchange="app.changeLocation(this.value)">
+            <option value="indiranagar" selected>Indiranagar, Metro Pillar 78</option>
+            <option value="koramangala">Koramangala 4th Block</option>
+            <option value="hsr">HSR Layout Sector 2</option>
+            <option value="whitefield">Whitefield Main Road</option>
+            <option value="jayanagar">Jayanagar 9th Block</option>
+          </select>
+        </div>
+        <button class="btn-gps" onclick="app.refreshGps()" title="Auto-detect GPS coordinates">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <circle cx="12" cy="12" r="3"/>
+            <line x1="12" y1="2" x2="12" y2="5"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+            <line x1="2" y1="12" x2="5" y2="12"/>
+            <line x1="19" y1="12" x2="22" y2="12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Quick Header Search Box -->
+      <div class="header-search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.3-4.3"/>
+        </svg>
+        <input type="text" id="headerSearchInput" placeholder="Search care, doctors, tests..." onkeyup="app.handleHeaderSearch(event)">
+      </div>
+
+      <!-- Primary Navigation Links -->
+      <nav class="nav-links" id="mainNavLinks">
+        <button class="nav-btn active" data-view="home" onclick="app.switchView('home')">Home</button>
+        <button class="nav-btn" data-view="facilities" onclick="app.switchView('facilities')">Hospitals</button>
+        <button class="nav-btn" data-view="doctors" onclick="app.switchView('doctors')">Doctors</button>
+        <button class="nav-btn" data-view="labs" onclick="app.switchView('labs')">Tests</button>
+        
+        <!-- More Dropdown -->
+        <div class="dropdown-nav">
+          <button class="nav-btn dropdown-toggle" id="btnMoreMenu" onclick="app.toggleMoreMenu(event)">
+            <span>More</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="dropdown-menu" id="moreDropdownMenu">
+            <a href="#medicines" class="dropdown-item" onclick="app.switchView('medicines'); app.closeMoreMenu();">
+              <span class="drop-icon">💊</span>
+              <div>
+                <strong>Medicines & Pharmacy</strong>
+                <small>24/7 drug stocks & prices</small>
+              </div>
+            </a>
+            <a href="#blood" class="dropdown-item" onclick="app.switchView('blood'); app.closeMoreMenu();">
+              <span class="drop-icon">🩸</span>
+              <div>
+                <strong>Blood Bank Radar</strong>
+                <small>Live component units & hold</small>
+              </div>
+            </a>
+            <a href="#packages" class="dropdown-item" onclick="app.switchView('packages'); app.closeMoreMenu();">
+              <span class="drop-icon">🩺</span>
+              <div>
+                <strong>Health Packages</strong>
+                <small>Full body & preventive checkups</small>
+              </div>
+            </a>
+            <a href="#estimator" class="dropdown-item" onclick="app.switchView('estimator'); app.closeMoreMenu();">
+              <span class="drop-icon">💳</span>
+              <div>
+                <strong>Bill Estimator</strong>
+                <small>Transparent out-of-pocket costs</small>
+              </div>
+            </a>
+            <a href="#ai-hub" class="dropdown-item" onclick="app.switchView('ai-hub'); app.closeMoreMenu();">
+              <span class="drop-icon">📈</span>
+              <div>
+                <strong>AI Predictive Hub</strong>
+                <small>Queue velocity & peak forecast</small>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <!-- Saved Items Pill -->
+        <button class="btn-saved-pill" onclick="app.openSavedModal()" title="View saved facilities & tokens">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+          <span class="saved-count-badge" id="savedCountBadge">0</span>
+        </button>
+      </nav>
+
+      <!-- Emergency SOS Action -->
+      <div class="header-actions">
+        <button id="btnEmergencyTrigger" class="btn-emergency-pulse" onclick="app.toggleEmergencyMode()">
+          <span class="emergency-icon-ring">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            <span class="siren-dot"></span>
+          </span>
+          <span class="emergency-text">EMERGENCY SOS</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Live Intelligence Ticker Bar (Requirement 18) -->
+  <div class="live-status-ticker">
+    <div class="ticker-wrapper">
+      <span class="live-dot"></span>
+      <span class="ticker-label">LIVE INTELLIGENCE RADAR:</span>
+      <div class="ticker-slider" id="tickerSlider">
+        <span>CareFlow AI detected lower crowd levels at City Health Care (8 min wait).</span>
+        <span>•</span>
+        <span>Average OP wait reduced by 8 minutes across Indiranagar network.</span>
+        <span>•</span>
+        <span>3 facilities currently have emergency capacity & open ICU beds.</span>
+        <span>•</span>
+        <span>Blood availability updated recently: 6 units of O- Negative verified.</span>
+        <span>•</span>
+        <span>Ambulance Unit ALS-04 on standby 1.4 km away (ETA 4 min).</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container for Micro-feedbacks -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- Primary Application Wrapper -->
+  <main id="appContent" class="main-container">
+
+    <!-- ========================================== -->
+    <!-- VIEW 1: HOME PAGE                          -->
+    <!-- ========================================== -->
+    <section id="view-home" class="view-section active">
+      <!-- Hero Section (Requirement 3) -->
+      <div class="hero-block">
+        <div class="hero-text-content">
+          <div class="pill-badge">
+            <span class="sparkle">✦</span>
+            <span>Real-Time Crowds • Wait Times • Upfront Healthcare Costs</span>
+          </div>
+          <h1 class="hero-title">Find the right healthcare option before you go.</h1>
+          <p class="hero-subtitle">
+            CareFlow forecasts hospital queues, doctor consultation delays, diagnostic test fees, drug inventory, and emergency beds so you pick the fastest, lowest-cost care.
+          </p>
+
+          <!-- Large Healthcare Search Box -->
+          <div class="hero-search-wrapper">
+            <div class="search-input-box">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.3-4.3"/>
+              </svg>
+              <input type="text" id="globalSearchInput" placeholder="Search doctor, hospital, CBC test, blood group, medicine, X-ray..." onkeyup="app.handleGlobalSearch(event)">
+            </div>
+            <button class="btn-hero-search" onclick="app.executeGlobalSearch()">
+              <span>Search Care</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </div>
+
+          <!-- Search Suggestions Pills -->
+          <div class="hero-suggestions">
+            <span class="sugg-label">Popular searches:</span>
+            <button class="sugg-chip" onclick="app.applySearchSuggestion('Find a cardiologist')">Find a cardiologist</button>
+            <button class="sugg-chip" onclick="app.applySearchSuggestion('CBC blood test')">CBC blood test</button>
+            <button class="sugg-chip" onclick="app.applySearchSuggestion('O+ blood')">O+ blood</button>
+            <button class="sugg-chip" onclick="app.applySearchSuggestion('Pharmacy near me')">Pharmacy near me</button>
+            <button class="sugg-chip" onclick="app.applySearchSuggestion('Hospital with ICU')">Hospital with ICU</button>
+            <button class="sugg-chip" onclick="app.applySearchSuggestion('X-ray')">X-ray</button>
+          </div>
+
+          <!-- Hero Bottom CTAs -->
+          <div class="hero-actions-row">
+            <button class="btn-primary-hero" onclick="app.switchView('facilities')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+              Compare Nearby Hospitals
+            </button>
+            <button class="btn-secondary-hero" onclick="app.toggleEmergencyMode()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Emergency SOS Mode
+            </button>
+            <div class="hero-trust-tag">
+              <span class="pulse-dot"></span>
+              <span>5 Verified Facilities Connected</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hero Emergency Quick Card -->
+        <div class="hero-emergency-card" onclick="app.toggleEmergencyMode()">
+          <div class="er-badge">EMERGENCY PROTOCOL</div>
+          <div class="er-icon-pulse">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+          </div>
+          <h3>Urgent Medical Need?</h3>
+          <p>Instant triage: discover nearest Level-1 trauma centers, live ICU ventilator beds, standby ambulances, and O- universal blood with zero wait.</p>
+          <div class="er-meta-pills">
+            <span>🚨 0-min ER Triage</span>
+            <span>🚑 4-min ALS Ambulance</span>
+          </div>
+          <button class="btn-emergency-action">Open Emergency Center →</button>
+        </div>
+      </div>
+
+      <!-- Four Primary Actions (Requirement 4) -->
+      <section class="primary-actions-section">
+        <div class="section-title-wrap">
+          <h2 class="subheading-text">Start Your Healthcare Search</h2>
+          <p class="subheading-desc">Select an entry point to find availability, compare times, or coordinate care</p>
+        </div>
+
+        <div class="four-actions-grid">
+          <!-- 1. Find a Hospital -->
+          <div class="action-card" onclick="app.switchView('facilities')" tabindex="0" role="button">
+            <div class="action-icon icon-hospital">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="16" height="20" x="4" y="2" rx="2"/>
+                <path d="M8 6h.01M16 6h.01M8 10h.01M16 10h.01M10 16h4M12 14v4"/>
+              </svg>
+            </div>
+            <div class="action-text">
+              <h3>Find a Hospital</h3>
+              <p>Compare live crowds, doctor fees, OP wait times, ICU beds & facilities side-by-side.</p>
+            </div>
+            <div class="action-arrow">
+              <span>Compare</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          </div>
+
+          <!-- 2. Find a Doctor -->
+          <div class="action-card" onclick="app.switchView('doctors')" tabindex="0" role="button">
+            <div class="action-icon icon-doctor">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/>
+                <path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/>
+                <circle cx="20" cy="10" r="2"/>
+              </svg>
+            </div>
+            <div class="action-text">
+              <h3>Find a Doctor</h3>
+              <p>Check on-duty specialists, active patient queues, next available slots & reserve tokens.</p>
+            </div>
+            <div class="action-arrow">
+              <span>View Queues</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          </div>
+
+          <!-- 3. Find a Test -->
+          <div class="action-card" onclick="app.switchView('labs')" tabindex="0" role="button">
+            <div class="action-icon icon-lab">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14.5 2v17.5c0 1.4-1.1 2.5-2.5 2.5s-2.5-1.1-2.5-2.5V2"/>
+                <path d="M8.5 2h7"/>
+                <path d="M9.5 12h5"/>
+              </svg>
+            </div>
+            <div class="action-text">
+              <h3>Find a Test</h3>
+              <p>Compare diagnostic lab prices (CBC, Sugar, Thyroid, Scans) & sample turnaround times.</p>
+            </div>
+            <div class="action-arrow">
+              <span>Compare Labs</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          </div>
+
+          <!-- 4. Emergency Help -->
+          <div class="action-card action-card-urgent" onclick="app.toggleEmergencyMode()" tabindex="0" role="button">
+            <div class="action-icon icon-emergency">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+            </div>
+            <div class="action-text">
+              <h3>Emergency Help</h3>
+              <p>Zero-wait trauma routing, ambulance dispatch, ICU ventilator status & universal blood.</p>
+            </div>
+            <div class="action-arrow">
+              <span>Critical Care</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- "Why CareFlow Recommends This" AI Recommendation Banner (Requirement 6) -->
+      <section class="smart-rec-banner" id="homeSmartRec">
+        <div class="smart-rec-header">
+          <div class="rec-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/>
+            </svg>
+          </div>
+          <div class="rec-header-text">
+            <div class="rec-tag-group">
+              <span class="rec-tag">CAREFLOW AI SMART RECOMMENDATION</span>
+              <span class="ai-confidence-pill" id="aiConfidenceBadge">AI Confidence: 94%</span>
+            </div>
+            <h3 id="homeRecTitle">Why CareFlow recommends this facility for you</h3>
+          </div>
+        </div>
+        <div class="smart-rec-body" id="homeRecBody">
+          <!-- Dynamically populated by app.js with explainable reasons -->
+        </div>
+      </section>
+
+      <!-- "Your Healthcare Journey" Visual Step Indicator (Requirement 15) -->
+      <section class="journey-section">
+        <div class="section-title-wrap">
+          <h2 class="subheading-text">Your Healthcare Journey with CareFlow</h2>
+          <p class="subheading-desc">How our AI intelligence layer guides you from symptom to consultation with zero friction</p>
+        </div>
+
+        <div class="journey-steps-container">
+          <div class="journey-step" onclick="app.highlightLocation()">
+            <div class="step-num">1</div>
+            <div class="step-icon">📍</div>
+            <h4>Location</h4>
+            <p>GPS auto-locks your vicinity</p>
+          </div>
+          <div class="step-connector"></div>
+
+          <div class="journey-step" onclick="document.getElementById('globalSearchInput').focus()">
+            <div class="step-num">2</div>
+            <div class="step-icon">🩺</div>
+            <h4>Need</h4>
+            <p>Doctor, test, drug, or ER</p>
+          </div>
+          <div class="step-connector"></div>
+
+          <div class="journey-step" onclick="app.switchView('facilities')">
+            <div class="step-num">3</div>
+            <div class="step-icon">⚖️</div>
+            <h4>Compare</h4>
+            <p>Live crowds, wait & price</p>
+          </div>
+          <div class="step-connector"></div>
+
+          <div class="journey-step" onclick="app.switchView('facilities')">
+            <div class="step-num">4</div>
+            <div class="step-icon">🤖</div>
+            <h4>AI Optimal</h4>
+            <p>Explainable best match</p>
+          </div>
+          <div class="step-connector"></div>
+
+          <div class="journey-step" onclick="app.switchView('estimator')">
+            <div class="step-num">5</div>
+            <div class="step-icon">💳</div>
+            <h4>Estimate</h4>
+            <p>Transparent bill breakdown</p>
+          </div>
+          <div class="step-connector"></div>
+
+          <div class="journey-step" onclick="app.switchView('doctors')">
+            <div class="step-num">6</div>
+            <div class="step-icon">🎟️</div>
+            <h4>Queue Token</h4>
+            <p>Pre-pass to skip lobby wait</p>
+          </div>
+          <div class="step-connector"></div>
+
+          <div class="journey-step" onclick="app.openRouteModal('fac-1')">
+            <div class="step-num">7</div>
+            <div class="step-icon">🚗</div>
+            <h4>Navigate</h4>
+            <p>Real-time traffic map route</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Live Regional Healthcare Radar Overview (Requirement 13) -->
+      <section class="dashboard-overview-container">
+        <div class="section-heading">
+          <div>
+            <h2>Live Regional Healthcare Radar</h2>
+            <p>Real-time aggregated health operational capacity across 5 facilities in your sector</p>
+          </div>
+          <span class="live-pill"><span class="pulse-dot"></span> LIVE NETWORK</span>
+        </div>
+
+        <div class="radar-metrics-grid">
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-title">Available Doctors</span>
+              <span class="metric-badge green">Active Now</span>
+            </div>
+            <div class="metric-value" id="radarDoctorsCount">24</div>
+            <div class="metric-sub">Across 5 nearby clinics & hospitals</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-title">Average Crowd Level</span>
+              <span class="metric-badge amber">Moderate</span>
+            </div>
+            <div class="metric-value" id="radarCrowdLevel">58%</div>
+            <div class="metric-sub">Avg OP Wait: <strong>18 mins</strong></div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-title">Critical Blood Buffer</span>
+              <span class="metric-badge green">Stable</span>
+            </div>
+            <div class="metric-value" id="radarBloodCount">42 Units</div>
+            <div class="metric-sub">6 O-Negative universal units</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-title">Open ICU Beds</span>
+              <span class="metric-badge cyan">Available</span>
+            </div>
+            <div class="metric-value">13 Beds</div>
+            <div class="metric-sub">Trauma ventilator capacity</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-title">Standby Ambulances</span>
+              <span class="metric-badge green">Rapid</span>
+            </div>
+            <div class="metric-value">4 Active</div>
+            <div class="metric-sub">Fastest ETA: <strong>4 mins</strong></div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-top">
+              <span class="metric-title">OP Consultation Tariff</span>
+              <span class="metric-badge cyan">Range</span>
+            </div>
+            <div class="metric-value">₹150 – ₹500</div>
+            <div class="metric-sub">Standard OP General Medicine</div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- VIEW 2: FACILITY COMPARISON (Killer Feature) -->
+    <!-- ========================================== -->
+    <section id="view-facilities" class="view-section">
+      <div class="view-header">
+        <div>
+          <h2>Healthcare Facility Comparison</h2>
+          <p>Compare nearby hospitals and clinics based on total estimated time to doctor, crowd density, waiting queues, consultation costs, and emergency readiness.</p>
+        </div>
+        <div class="filter-controls">
+          <label class="filter-label" for="facilitySort">Sort by:</label>
+          <select id="facilitySort" class="select-styled" onchange="app.renderFacilities()">
+            <option value="fastest">Fastest Total Time (Travel + Wait)</option>
+            <option value="smart">CareFlow AI Recommended</option>
+            <option value="wait">Shortest Clinic Wait Time</option>
+            <option value="distance">Closest Distance</option>
+            <option value="cost">Lowest Consultation Fee</option>
+            <option value="crowd">Least Crowded</option>
+            <option value="rating">Highest Rated</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Feature Filters Toolbar -->
+      <div class="facility-filters-bar">
+        <span class="filter-group-label">Quick Filters:</span>
+        <label class="filter-toggle">
+          <input type="checkbox" id="filterEmergency" onchange="app.renderFacilities()">
+          <span>Emergency Ready</span>
+        </label>
+        <label class="filter-toggle">
+          <input type="checkbox" id="filterIcu" onchange="app.renderFacilities()">
+          <span>ICU Available</span>
+        </label>
+        <label class="filter-toggle">
+          <input type="checkbox" id="filterBlood" onchange="app.renderFacilities()">
+          <span>Blood Bank</span>
+        </label>
+        <label class="filter-toggle">
+          <input type="checkbox" id="filterPharmacy" onchange="app.renderFacilities()">
+          <span>24/7 Pharmacy</span>
+        </label>
+        <label class="filter-toggle">
+          <input type="checkbox" id="filterLab" onchange="app.renderFacilities()">
+          <span>24/7 Lab</span>
+        </label>
+        <label class="filter-toggle">
+          <input type="checkbox" id="filterOpenNow" onchange="app.renderFacilities()">
+          <span>Open Now</span>
+        </label>
+      </div>
+
+      <!-- Facility Comparison Grid -->
+      <div id="facilityGrid" class="facilities-grid">
+        <!-- Injected via JavaScript -->
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- VIEW 3: DOCTOR & OP CONSULTATION           -->
+    <!-- ========================================== -->
+    <section id="view-doctors" class="view-section">
+      <div class="view-header">
+        <div>
+          <h2>Doctor & Outpatient (OP) Consultation</h2>
+          <p>Find available doctors, monitor active lobby queues, compare door-to-doctor times, and reserve simulated queue pre-tokens.</p>
+        </div>
+        <div class="filter-controls">
+          <input type="text" id="doctorSearchInput" placeholder="Search doctor, hospital or specialty..." class="input-styled" oninput="app.filterDoctors()">
+          <select id="doctorSpecialtyFilter" class="select-styled" onchange="app.filterDoctors()">
+            <option value="all">All Specializations</option>
+            <option value="General Medicine">General Medicine</option>
+            <option value="Cardiology">Cardiology</option>
+            <option value="Pediatrics">Pediatrics</option>
+            <option value="Orthopedics">Orthopedics</option>
+            <option value="Dermatology">Dermatology</option>
+            <option value="ENT">ENT</option>
+          </select>
+          <select id="doctorSort" class="select-styled" onchange="app.filterDoctors()">
+            <option value="recommended">AI Optimal (Wait + Fee + Travel)</option>
+            <option value="wait">Least Waiting Time</option>
+            <option value="fee">Lowest Consultation Fee</option>
+            <option value="distance">Shortest Distance</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="doctorCardsList" class="doctors-grid">
+        <!-- Injected via JavaScript -->
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- VIEW 4: BLOOD TEST & LAB COST              -->
+    <!-- ========================================== -->
+    <section id="view-labs" class="view-section">
+      <div class="view-header">
+        <div>
+          <h2>Blood Tests & Diagnostic Lab Costs</h2>
+          <p>Compare test prices, active sample queues, and waiting times across trusted laboratories. Highlighting cheapest and fastest options.</p>
+        </div>
+        <div class="lab-search-bar">
+          <input type="text" id="labSearchInput" placeholder="Search tests (e.g. CBC, Lipid, Thyroid, Sugar, LFT, X-Ray)..." class="input-styled" oninput="app.filterLabs()">
+          <div class="popular-test-chips">
+            <span class="chip" onclick="app.quickFilterLab('CBC')">CBC</span>
+            <span class="chip" onclick="app.quickFilterLab('Blood Sugar')">Blood Sugar</span>
+            <span class="chip" onclick="app.quickFilterLab('Lipid Profile')">Lipid Profile</span>
+            <span class="chip" onclick="app.quickFilterLab('Thyroid')">Thyroid (T3/T4/TSH)</span>
+            <span class="chip" onclick="app.quickFilterLab('Liver Function')">Liver Function (LFT)</span>
+            <span class="chip" onclick="app.quickFilterLab('Kidney Function')">Kidney Function (KFT)</span>
+            <span class="chip" onclick="app.quickFilterLab('X-Ray')">Chest X-Ray</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="labComparisonContainer" class="lab-comparison-cards">
+        <!-- Injected via JavaScript -->
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- VIEW 5: HEALTH CHECKUP PACKAGES            -->
+    <!-- ========================================== -->
+    <section id="view-packages" class="view-section">
+      <div class="view-header">
+        <div>
+          <h2>Preventive Health Checkup Packages</h2>
+          <p>Transparent pricing, included tests, completion times, and facility availability for preventive health management.</p>
+        </div>
+      </div>
+
+      <div id="packagesGrid" class="packages-grid">
+        <!-- Injected via JavaScript -->
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- VIEW 6: MEDICINE AVAILABILITY + COST       -->
+    <!-- ========================================== -->
+    <section id="view-medicines" class="view-section">
+      <div class="view-header">
+        <div>
+          <h2>Medicine Stock & Pharmacy Radar</h2>
+          <p>Search essential, rare, and emergency pharmaceuticals across 24/7 hospital pharmacies with simulated stock levels.</p>
+        </div>
+        <div class="filter-controls">
+          <input type="text" id="medicineSearchInput" placeholder="Search medicine (e.g. Paracetamol, Insulin, Epinephrine, Remdesivir)..." class="input-styled" oninput="app.filterMedicines()">
+          <label class="checkbox-container">
+            <input type="checkbox" id="chkCriticalMeds" onchange="app.filterMedicines()">
+            <span>Show Emergency & Critical Care Only</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Medicine Disclaimer Notice -->
+      <div class="info-alert">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <span>CareFlow displays simulated inventory data for reference only and does not dispense prescriptions or dispense drugs. Always consult a licensed medical provider.</span>
+      </div>
+
+      <div id="medicinesTableWrapper" class="medicines-container">
+        <!-- Injected via JavaScript -->
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- VIEW 7: BLOOD AVAILABILITY + COST          -->
+    <!-- ========================================== -->
+    <section id="view-blood" class="view-section">
+      <div class="view-header">
+        <div>
+          <h2>Blood Bank Availability & Processing Charges</h2>
+          <p>Check component inventory, processing fees, and dispatch proximity in verified blood banks.</p>
+        </div>
+      </div>
+
+      <!-- Blood Selection Control (Requirement 13) -->
+      <div class="blood-selector-card">
+        <div class="blood-selector-fields">
+          <div class="form-group">
+            <label>Select Blood Group:</label>
+            <div class="blood-group-buttons" id="bloodGroupButtons">
+              <button class="btn-blood active" onclick="app.selectBloodGroup('O+')">O+</button>
+              <button class="btn-blood" onclick="app.selectBloodGroup('O-')">O- (Universal)</button>
+              <button class="btn-blood" onclick="app.selectBloodGroup('A+')">A+</button>
+              <button class="btn-blood" onclick="app.selectBloodGroup('A-')">A-</button>
+              <button class="btn-blood" onclick="app.selectBloodGroup('B+')">B+</button>
+              <button class="btn-blood" onclick="app.selectBloodGroup('B-')">B-</button>
+              <button class="btn-blood" onclick="app.selectBloodGroup('AB+')">AB+</button>
+              <button class="btn-blood" onclick="app.selectBloodGroup('AB-')">AB-</button>
+            </div>
+          </div>
+          <div class="form-group quantity-box">
+            <label>Required Units:</label>
+            <div class="unit-counter">
+              <button onclick="app.decrementBloodUnit()">-</button>
+              <span id="selectedBloodUnits">1 Unit</span>
+              <button onclick="app.incrementBloodUnit()">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="blood-status-summary-bar" id="bloodStatusSummaryBar">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <div id="bloodBanksGrid" class="blood-banks-grid">
+        <!-- Injected via JavaScript -->
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- VIEW 8: BILL & PAYMENT ESTIMATOR (Req 14)  -->
+    <!-- ========================================== -->
+    <section id="view-estimator" class="view-section">
+      <div class="view-header">
+        <div>
+          <h2>Transparent Bill & Payment Estimator</h2>
+          <p>Estimate out-of-pocket costs before you arrive at the clinic. Check accepted payment methods and cashless insurance TPA desk support.</p>
+        </div>
+      </div>
+
+      <div class="estimator-layout">
+        <!-- Service Selection Panel -->
+        <div class="estimator-controls">
+          <div class="panel-card">
+            <h3>1. Select Hospital or Clinic</h3>
+            <select id="estimatorFacility" class="select-styled full-width" onchange="app.updateEstimator()">
+              <option value="fac-1">CareFlow Metro Multi-Specialty</option>
+              <option value="fac-2">City Health Care & Diagnostics</option>
+              <option value="fac-3">Apollo Clinic & Day Surgery</option>
+              <option value="fac-4">St. Jude Community Hospital</option>
+              <option value="fac-5">MedPulse 24/7 Urgent PolyClinic</option>
+            </select>
+
+            <h3 class="mt-4">2. Doctor Consultation</h3>
+            <div class="radio-pill-group">
+              <label class="radio-pill">
+                <input type="radio" name="estConsultation" value="0" onchange="app.updateEstimator()">
+                <span>No Consultation Needed</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="estConsultation" value="400" checked onchange="app.updateEstimator()">
+                <span>General Medicine OP (₹400)</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="estConsultation" value="650" onchange="app.updateEstimator()">
+                <span>Specialist / Super Specialist (₹650)</span>
+              </label>
+            </div>
+
+            <h3 class="mt-4">3. Diagnostic Tests & Scans</h3>
+            <div class="checklist-grid" id="estTestsList">
+              <label class="check-item">
+                <input type="checkbox" value="250" data-name="Complete Blood Count (CBC)" onchange="app.updateEstimator()" checked>
+                <span>Complete Blood Count (CBC) — ₹250</span>
+              </label>
+              <label class="check-item">
+                <input type="checkbox" value="120" data-name="Fasting Blood Sugar" onchange="app.updateEstimator()">
+                <span>Fasting Blood Sugar — ₹120</span>
+              </label>
+              <label class="check-item">
+                <input type="checkbox" value="650" data-name="Lipid Profile" onchange="app.updateEstimator()">
+                <span>Lipid Profile — ₹650</span>
+              </label>
+              <label class="check-item">
+                <input type="checkbox" value="500" data-name="Thyroid Profile (T3/T4/TSH)" onchange="app.updateEstimator()">
+                <span>Thyroid Profile — ₹500</span>
+              </label>
+              <label class="check-item">
+                <input type="checkbox" value="450" data-name="Digital Chest X-Ray" onchange="app.updateEstimator()">
+                <span>Digital Chest X-Ray — ₹450</span>
+              </label>
+              <label class="check-item">
+                <input type="checkbox" value="950" data-name="Ultrasound Abdomen (USG)" onchange="app.updateEstimator()">
+                <span>Ultrasound Abdomen (USG) — ₹950</span>
+              </label>
+            </div>
+
+            <h3 class="mt-4">4. Hospital Registration & Ancillary Fees</h3>
+            <div class="checklist-grid">
+              <label class="check-item">
+                <input type="checkbox" id="estRegFee" value="50" data-name="New Patient Registration & Card" onchange="app.updateEstimator()" checked>
+                <span>New Patient Registration & Digital Card — ₹50</span>
+              </label>
+              <label class="check-item">
+                <input type="checkbox" id="estNursingFee" value="100" data-name="Nursing & Vitals Triage Check" onchange="app.updateEstimator()">
+                <span>Nursing & Vitals Triage Check — ₹100</span>
+              </label>
+              <label class="check-item">
+                <input type="checkbox" id="estMedKit" value="180" data-name="Essential OP Medication Kit" onchange="app.updateEstimator()">
+                <span>Essential OP Medication Starter Kit — ₹180</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Estimate Summary & Payment Badges -->
+        <div class="estimator-summary-panel">
+          <div class="panel-card invoice-card">
+            <div class="invoice-header">
+              <span class="invoice-title">ESTIMATED OUT-OF-POCKET BILL</span>
+              <span class="badge-preview">PROVISIONAL ESTIMATE</span>
+            </div>
+
+            <div class="invoice-facility-badge" id="estFacilityBadge">
+              CareFlow Metro Multi-Specialty
+            </div>
+
+            <div class="invoice-items" id="estimatorItemsList">
+              <!-- Rendered items -->
+            </div>
+
+            <div class="invoice-divider"></div>
+
+            <div class="invoice-total-row">
+              <span class="total-label">Estimated Total:</span>
+              <span class="total-val" id="estimatorTotalAmount">₹700</span>
+            </div>
+            <p class="invoice-subtext">Estimated based on standard outpatient tariff. No surprise booking or platform fee.</p>
+
+            <!-- Accepted Payment Methods -->
+            <div class="payment-methods-block">
+              <h4>Accepted Payment Options at this Facility</h4>
+              <div class="payment-badges-row">
+                <span class="pay-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> UPI (GPay, PhonePe, Paytm)</span>
+                <span class="pay-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect width="20" height="14" x="2" y="5" rx="2"/></svg> Debit / Credit Cards</span>
+                <span class="pay-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/></svg> Cash at Counter</span>
+                <span class="pay-chip highlight"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Cashless Insurance TPA Desk</span>
+              </div>
+
+              <div class="payment-support-matrix" id="estSupportMatrix">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+
+            <div class="estimator-action-buttons">
+              <button class="btn-primary full-width" onclick="app.showBookingTokenModal()">
+                Generate Estimated Visit Token & Summary
+              </button>
+              <button class="btn-outline full-width mt-2" onclick="app.copyBillEstimate()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                Copy Bill Estimate
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- VIEW 9: 🚨 EMERGENCY MODE (Req 9)          -->
+    <!-- ========================================== -->
+    <section id="view-emergency" class="view-section emergency-view">
+      <div class="emergency-banner-top">
+        <div class="er-live-indicator">
+          <span class="pulsing-beacon"></span>
+          <div>
+            <h2>🚨 EMERGENCY COORDINATION & CRITICAL CARE MODE</h2>
+            <p>Immediate triage protocol: speed and resource availability prioritized over cost.</p>
+          </div>
+        </div>
+        <div class="er-top-actions">
+          <a href="tel:108" class="btn-sos-call" onclick="app.handleEmergencyCall(event)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            CALL 108 AMBULANCE
+          </a>
+          <button class="btn-exit-emergency" onclick="app.toggleEmergencyMode()">Exit Emergency Mode ✕</button>
+        </div>
+      </div>
+
+      <!-- Emergency Primary Actions Bar -->
+      <div class="emergency-quick-actions-bar">
+        <button class="btn-er-action call-btn" onclick="app.handleEmergencyCall(event)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          <div>
+            <strong>Call Emergency Services</strong>
+            <small>Direct line to national 108 medical response</small>
+          </div>
+        </button>
+        <button class="btn-er-action amb-btn" onclick="app.requestAmbulanceModal()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <div>
+            <strong>Request Ambulance Dispatch</strong>
+            <small>Dispatch closest ALS unit with live ETA tracker</small>
+          </div>
+        </button>
+        <button class="btn-er-action nav-btn" onclick="app.navigateNearestEmergencyHospital()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+          <div>
+            <strong>Navigate to Hospital</strong>
+            <small>Fastest route to Level-1 Trauma casualty bay</small>
+          </div>
+        </button>
+      </div>
+
+      <!-- Emergency AI Recommendation -->
+      <div class="er-rec-card" id="erRecCard">
+        <div class="er-rec-badge">FASTEST LIFE-SAVING TRAUMA OPTION</div>
+        <div class="er-rec-content" id="erRecContent">
+          <!-- Injected via JavaScript -->
+        </div>
+      </div>
+
+      <!-- Emergency 4-Pillar Grid -->
+      <div class="er-four-pillars">
+        <!-- Pillar 1: Emergency Trauma Hospitals -->
+        <div class="er-pillar-card">
+          <div class="pillar-header">
+            <h3>1. Emergency Ready Hospitals</h3>
+            <span class="badge-count">Nearest Trauma Centers</span>
+          </div>
+          <div class="pillar-list" id="erHospitalList">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- Pillar 2: Live Ambulances Radar -->
+        <div class="er-pillar-card">
+          <div class="pillar-header">
+            <h3>2. Standby Ambulances</h3>
+            <span class="badge-count">ALS / BLS Units</span>
+          </div>
+          <div class="pillar-list" id="erAmbulanceList">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- Pillar 3: Emergency Critical Resources -->
+        <div class="er-pillar-card">
+          <div class="pillar-header">
+            <h3>3. Critical Life Resources</h3>
+            <span class="badge-count">ICU • Blood • Meds</span>
+          </div>
+          <div class="pillar-list" id="erResourcesList">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- Pillar 4: Emergency Cost Guidance -->
+        <div class="er-pillar-card">
+          <div class="pillar-header">
+            <h3>4. Emergency Guidance & Protocol</h3>
+            <span class="badge-count">Statutory Info</span>
+          </div>
+          <div class="er-cost-info">
+            <div class="er-cost-item">
+              <span>Emergency Casualty Registration:</span>
+              <strong>₹100 (Waived for life-saving triage)</strong>
+            </div>
+            <div class="er-cost-item">
+              <span>ER Triage Doctor Assessment:</span>
+              <strong>₹500 (Standard)</strong>
+            </div>
+            <div class="er-cost-item">
+              <span>Government 108 Ambulance:</span>
+              <strong class="green-text">FREE / Subsidized</strong>
+            </div>
+            <div class="er-cost-item">
+              <span>Private ALS Ambulance Base:</span>
+              <strong>₹1,200 – ₹1,800</strong>
+            </div>
+            <div class="er-disclaimer-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span>Under emergency healthcare guidelines, critical care triage must never be delayed for lack of payment. All cashless insurance TPAs maintain priority admission desks.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- VIEW 10: AI SUPPLY CHAIN & FORECASTING HUB -->
+    <!-- ========================================== -->
+    <section id="view-ai-hub" class="view-section">
+      <div class="view-header">
+        <div>
+          <h2>CareFlow AI Supply-Chain & Predictive Intelligence</h2>
+          <p>Demand forecasting, queue velocity modeling, door-to-doctor delay prediction, and automated healthcare resource allocation.</p>
+        </div>
+      </div>
+
+      <div class="ai-hub-grid">
+        <!-- Demand Forecasting Card -->
+        <div class="ai-card">
+          <div class="ai-card-header">
+            <div class="ai-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                <polyline points="17 6 23 6 23 12"/>
+              </svg>
+            </div>
+            <div>
+              <h3>Demand Forecasting Model</h3>
+              <p>Predicting busy hours & rush surges</p>
+            </div>
+          </div>
+          <div class="ai-forecast-chart">
+            <div class="chart-bars">
+              <div class="chart-col"><span class="bar-fill" style="height: 35%"></span><span class="bar-lbl">9 AM</span><span class="bar-val">Low</span></div>
+              <div class="chart-col"><span class="bar-fill" style="height: 75%"></span><span class="bar-lbl">11 AM</span><span class="bar-val">Peak</span></div>
+              <div class="chart-col"><span class="bar-fill" style="height: 50%"></span><span class="bar-lbl">1 PM</span><span class="bar-val">Mod</span></div>
+              <div class="chart-col"><span class="bar-fill" style="height: 40%"></span><span class="bar-lbl">3 PM</span><span class="bar-val">Low</span></div>
+              <div class="chart-col peak"><span class="bar-fill" style="height: 90%"></span><span class="bar-lbl">5 PM</span><span class="bar-val">Max</span></div>
+              <div class="chart-col"><span class="bar-fill" style="height: 65%"></span><span class="bar-lbl">7 PM</span><span class="bar-val">High</span></div>
+              <div class="chart-col"><span class="bar-fill" style="height: 25%"></span><span class="bar-lbl">9 PM</span><span class="bar-val">Quiet</span></div>
+            </div>
+          </div>
+          <div class="ai-card-footer">
+            <span class="ai-pill">AI Prediction:</span>
+            <span>Next optimal low-crowd window is between <strong>2:30 PM – 4:00 PM</strong> across all clinics.</span>
+          </div>
+        </div>
+
+        <!-- Queue Prediction Model -->
+        <div class="ai-card">
+          <div class="ai-card-header">
+            <div class="ai-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </div>
+            <div>
+              <h3>Queue Velocity & Wait Prediction</h3>
+              <p>Patient intake rate & clearance velocity</p>
+            </div>
+          </div>
+          <div class="velocity-stats">
+            <div class="v-stat">
+              <span class="v-num">3.8 min</span>
+              <span class="v-txt">Avg Doctor Consultation Velocity</span>
+            </div>
+            <div class="v-stat">
+              <span class="v-num">2.1 min</span>
+              <span class="v-txt">Phlebotomy Sample Collection Speed</span>
+            </div>
+            <div class="v-stat">
+              <span class="v-num">94.2%</span>
+              <span class="v-txt">Queue Estimation Accuracy</span>
+            </div>
+          </div>
+          <div class="ai-card-footer">
+            <span class="ai-pill">Real-time Rule:</span>
+            <span>Estimated Wait = (Active Patients in Queue × Clearance Velocity) + Triage Delay.</span>
+          </div>
+        </div>
+
+        <!-- Delay Prediction (Door-to-Doctor) -->
+        <div class="ai-card">
+          <div class="ai-card-header">
+            <div class="ai-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+              </svg>
+            </div>
+            <div>
+              <h3>Total Delay Prediction (Door-to-Doctor)</h3>
+              <p>Travel transit time + Hospital queue wait</p>
+            </div>
+          </div>
+          <div class="delay-comparison-list" id="aiDelayCompList">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Supply-Chain Resource Allocation -->
+        <div class="ai-card">
+          <div class="ai-card-header">
+            <div class="ai-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect width="20" height="14" x="2" y="3" rx="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+            </div>
+            <div>
+              <h3>Supply-Chain Restock & Blood Flow</h3>
+              <p>Buffer tracking for emergency therapeutics</p>
+            </div>
+          </div>
+          <div class="resource-radar-list">
+            <div class="res-row">
+              <span class="res-name">O-Negative Blood Buffer</span>
+              <span class="res-tag yellow">Critical Watch (6 units remaining)</span>
+            </div>
+            <div class="res-row">
+              <span class="res-name">Epinephrine Auto-injectors</span>
+              <span class="res-tag green">Adequate Supply (24 units across 4 hubs)</span>
+            </div>
+            <div class="res-row">
+              <span class="res-name">ICU Ventilator Beds</span>
+              <span class="res-tag green">13 Beds Active Available</span>
+            </div>
+            <div class="res-row">
+              <span class="res-name">Insulin Glargine</span>
+              <span class="res-tag green">High Stock (All 5 pharmacies)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- FLOATING COMPARISON BAR (Requirement 7)    -->
+  <!-- ========================================== -->
+  <div id="floatingCompareBar" class="floating-compare-bar">
+    <div class="compare-bar-content">
+      <div class="compare-bar-info">
+        <span class="compare-badge" id="compareCountBadge">2 Facilities</span>
+        <span class="compare-names" id="compareNamesList">Selected for comparison</span>
+      </div>
+      <div class="compare-bar-actions">
+        <button class="btn-primary" onclick="app.openComparisonModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+          Compare Now
+        </button>
+        <button class="btn-outline-small" onclick="app.clearComparison()">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: FACILITY COMPARISON MATRIX (Req 7)  -->
+  <!-- ========================================== -->
+  <div id="comparisonModal" class="modal-overlay" onclick="app.closeComparisonModal(event)">
+    <div class="modal-window comparison-modal-box">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="badge-route">SIDE-BY-SIDE MATRIX</span>
+          <h3>Facility Feature Comparison</h3>
+        </div>
+        <button class="modal-close" onclick="app.closeComparisonModal()">✕</button>
+      </div>
+      <div class="modal-body comparison-modal-body">
+        <div class="comparison-table-wrapper" id="comparisonTableWrapper">
+          <!-- Rendered dynamically by JS -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" onclick="app.shareComparison()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Share Comparison
+        </button>
+        <button class="btn-primary" onclick="app.closeComparisonModal()">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: ROUTE PLANNING & NAVIGATION MAP (8) -->
+  <!-- ========================================== -->
+  <div id="routeModal" class="modal-overlay" onclick="app.closeRouteModal(event)">
+    <div class="modal-window route-modal-box">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="badge-route">GPS SMART ROUTE</span>
+          <h3 id="modalRouteHospitalName">Navigating to Facility</h3>
+        </div>
+        <button class="modal-close" onclick="app.closeRouteModal()">✕</button>
+      </div>
+
+      <div class="modal-body route-body">
+        <!-- Interactive Simulated Map Canvas / SVG -->
+        <div class="simulated-map-container">
+          <div class="map-grid-overlay"></div>
+
+          <!-- SVG Visual Routing Graphic -->
+          <svg class="map-svg" viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="fastestGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#0284c7" />
+                <stop offset="100%" stop-color="#10b981" />
+              </linearGradient>
+              <linearGradient id="altGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#94a3b8" />
+                <stop offset="100%" stop-color="#f59e0b" />
+              </linearGradient>
+            </defs>
+
+            <!-- Map background roads grid -->
+            <path d="M 50,40 L 550,40 M 50,120 L 550,120 M 50,200 L 550,200 M 50,280 L 550,280" stroke="#e2e8f0" stroke-width="3" stroke-dasharray="4,4"/>
+            <path d="M 80,20 L 80,300 M 200,20 L 200,300 M 360,20 L 360,300 M 500,20 L 500,300" stroke="#e2e8f0" stroke-width="3" stroke-dasharray="4,4"/>
+
+            <!-- Other Hospital pins scattered on map -->
+            <g transform="translate(220, 160)">
+              <circle r="6" fill="#94a3b8"/>
+              <text x="10" y="4" font-size="10" fill="#64748b">City Health Care</text>
+            </g>
+            <g transform="translate(320, 230)">
+              <circle r="6" fill="#94a3b8"/>
+              <text x="10" y="4" font-size="10" fill="#64748b">Apollo Clinic</text>
+            </g>
+            <g transform="translate(420, 190)">
+              <circle r="6" fill="#94a3b8"/>
+              <text x="10" y="4" font-size="10" fill="#64748b">St. Jude Hosp</text>
+            </g>
+
+            <!-- Alternative Route Path -->
+            <path id="altRoutePath" d="M 100,240 C 180,240 200,190 280,180 S 420,120 480,90" fill="none" stroke="url(#altGrad)" stroke-width="4" stroke-dasharray="6,4"/>
+
+            <!-- Fastest Route Path (Glowing) -->
+            <path id="fastestRoutePath" d="M 100,240 C 140,160 220,100 330,80 S 440,85 480,90" fill="none" stroke="url(#fastestGrad)" stroke-width="7" stroke-linecap="round"/>
+
+            <!-- Moving Pulse Dot along fastest route -->
+            <circle cx="100" cy="240" r="6" fill="#0284c7">
+              <animateMotion path="M 0,0 C 40,-80 120,-140 230,-160 S 340,-155 380,-150" dur="4s" repeatCount="indefinite" />
+            </circle>
+
+            <!-- Start Pin (User) -->
+            <g transform="translate(100, 240)">
+              <circle r="16" fill="rgba(2, 132, 199, 0.2)" />
+              <circle r="8" fill="#0284c7" stroke="#ffffff" stroke-width="2"/>
+              <text x="12" y="5" font-size="12" font-weight="bold" fill="#0f172a" id="svgUserPinLabel">You (Indiranagar)</text>
+            </g>
+
+            <!-- End Pin (Hospital) -->
+            <g transform="translate(480, 90)">
+              <circle r="20" fill="rgba(239, 68, 68, 0.2)" />
+              <circle r="12" fill="#ef4444" stroke="#ffffff" stroke-width="2"/>
+              <text x="-70" y="-18" font-size="12" font-weight="bold" fill="#0f172a" id="svgHospitalLabel">Destination</text>
+            </g>
+          </svg>
+
+          <!-- Traffic overlay badges -->
+          <div class="map-floating-badge traffic-badge">
+            <span class="live-dot-mini green"></span> <strong>Traffic Flow: Moderate (Clear on Ring Rd)</strong>
+          </div>
+          <div class="map-floating-badge eta-badge" id="modalMapEtaBadge">
+            🚗 12 min (3.4 km)
+          </div>
+        </div>
+
+        <!-- Route Details & Options -->
+        <div class="route-details-grid">
+          <!-- Fastest Route Option -->
+          <div class="route-option-card selected">
+            <div class="option-header">
+              <span class="badge-fastest">RECOMMENDED FASTEST</span>
+              <span class="option-time" id="modalFastestTime">12 mins</span>
+            </div>
+            <div class="option-meta">
+              <span>Via Intermediate Ring Road</span> • <span id="modalFastestDist">3.4 km</span>
+            </div>
+            <p class="option-desc">Fast moving traffic. Bypasses 2 congested signal intersections.</p>
+          </div>
+
+          <!-- Alternative Route Option -->
+          <div class="route-option-card">
+            <div class="option-header">
+              <span class="badge-alt">ALTERNATIVE ROUTE</span>
+              <span class="option-time" id="modalAltTime">19 mins</span>
+            </div>
+            <div class="option-meta">
+              <span>Via 100ft Main Street</span> • <span>4.1 km</span>
+            </div>
+            <p class="option-desc">Heavy congestion near Market Junction (+7 min traffic delay).</p>
+          </div>
+        </div>
+
+        <!-- Navigation Steps preview -->
+        <div class="turn-by-turn-box">
+          <h4>Turn-by-Turn Navigation Preview</h4>
+          <ol class="steps-list" id="modalRouteSteps">
+            <li>Head east on main avenue toward 12th Cross (400m)</li>
+            <li>Merge onto Intermediate Ring Road Express corridor (2.1 km)</li>
+            <li>Turn right onto Hospital Access Boulevard (600m)</li>
+            <li>Destination on the left — Dedicated Emergency & Outpatient Parking available</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <a id="btnExternalGoogleMaps" href="https://maps.google.com" target="_blank" rel="noopener noreferrer" class="btn-maps">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+          </svg>
+          Open in Google Maps
+        </a>
+        <button class="btn-primary" onclick="app.closeRouteModal()">Close Navigation</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: ESTIMATED TOKEN & VISIT PASS (10)   -->
+  <!-- ========================================== -->
+  <div id="bookingModal" class="modal-overlay" onclick="app.closeBookingModal(event)">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3>CareFlow Visit Pass & Queue Token</h3>
+        <button class="modal-close" onclick="app.closeBookingModal()">✕</button>
+      </div>
+      <div class="modal-body" id="bookingModalBody">
+        <!-- Rendered by JS -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" onclick="window.print()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+          Print / Save PDF
+        </button>
+        <button class="btn-primary" onclick="app.closeBookingModal()">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: AMBULANCE DISPATCH TRACKER          -->
+  <!-- ========================================== -->
+  <div id="ambulanceModal" class="modal-overlay" onclick="app.closeAmbulanceModal(event)">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="badge-route" style="background:#fee2e2; color:#b91c1c;">DISPATCH ACTIVATED</span>
+          <h3>Ambulance Unit Dispatch Tracker</h3>
+        </div>
+        <button class="modal-close" onclick="app.closeAmbulanceModal()">✕</button>
+      </div>
+      <div class="modal-body" id="ambulanceModalBody">
+        <!-- Injected via JS -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sos-call" style="font-size:0.8rem; padding:6px 14px;" onclick="alert('Calling dispatched driver...')">
+          📞 Call Paramedic
+        </button>
+        <button class="btn-primary" onclick="app.closeAmbulanceModal()">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: SAVED / BOOKMARKED ITEMS (Req 16)   -->
+  <!-- ========================================== -->
+  <div id="savedModal" class="modal-overlay" onclick="app.closeSavedModal(event)">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3>Saved Facilities & Generated Passes</h3>
+        <button class="modal-close" onclick="app.closeSavedModal()">✕</button>
+      </div>
+      <div class="modal-body" id="savedModalBody">
+        <!-- Injected via JS -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" onclick="app.clearSavedItems()">Clear All</button>
+        <button class="btn-primary" onclick="app.closeSavedModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- COMPREHENSIVE FOOTER (Requirement 20)      -->
+  <!-- ========================================== -->
+  <footer class="app-footer">
+    <div class="footer-container">
+      <div class="footer-main-row">
+        <!-- Brand Info -->
+        <div class="footer-col brand-col">
+          <div class="footer-brand">
+            <div class="logo-icon small">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+              </svg>
+            </div>
+            <span class="footer-logo-name">CareFlow</span>
+          </div>
+          <p class="footer-desc">
+            AI-assisted healthcare availability, cost transparency, and emergency coordination platform. Empowering patients with real-time pre-visit intelligence.
+          </p>
+          <div class="footer-badges">
+            <span class="f-badge">✦ Pre-Visit Intelligence</span>
+            <span class="f-badge">✦ Door-to-Doctor ETA</span>
+          </div>
+        </div>
+
+        <!-- Links Columns -->
+        <div class="footer-col">
+          <h4>Navigation</h4>
+          <ul class="footer-links">
+            <li><a href="#home" onclick="app.switchView('home')">Home Overview</a></li>
+            <li><a href="#facilities" onclick="app.switchView('facilities')">Hospitals Comparison</a></li>
+            <li><a href="#doctors" onclick="app.switchView('doctors')">Doctors & Queues</a></li>
+            <li><a href="#labs" onclick="app.switchView('labs')">Lab Tests & Prices</a></li>
+            <li><a href="#estimator" onclick="app.switchView('estimator')">Bill Estimator</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Emergency & Support</h4>
+          <ul class="footer-links">
+            <li><a href="#emergency" onclick="app.toggleEmergencyMode()">Emergency Mode (SOS)</a></li>
+            <li><a href="#blood" onclick="app.switchView('blood')">Blood Bank Radar</a></li>
+            <li><a href="#medicines" onclick="app.switchView('medicines')">Pharmacy Stock</a></li>
+            <li><a href="#ai-hub" onclick="app.switchView('ai-hub')">Predictive Queue AI</a></li>
+            <li><a href="tel:108" onclick="app.handleEmergencyCall(event)">National 108 Emergency</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Platform & Safety</h4>
+          <ul class="footer-links">
+            <li><a href="#" onclick="alert('CareFlow Concept: Aggregating simulated healthcare supply-chain data to eliminate ER overcrowding and medical financial surprises.'); return false;">About CareFlow</a></li>
+            <li><a href="#" onclick="alert('How CareFlow Works: Algorithms weigh travel time, wait times, consultation fees, and facility capabilities to rank options.'); return false;">How it Works</a></li>
+            <li><a href="#" onclick="alert('Safety Protocols: CareFlow prioritizes Level-1 trauma centers for critical symptoms without payment gatekeeping.'); return false;">Safety Guidelines</a></li>
+            <li><a href="#" onclick="alert('Privacy Guarantee: No personal identification or medical history is tracked or sold. Prototype runs locally.'); return false;">Privacy & Ethics</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Statutory Disclaimer Box -->
+      <div class="footer-disclaimer-box">
+        <div class="disclaimer-alert-icon">⚠️</div>
+        <div class="disclaimer-alert-text">
+          <strong>Prototype Notice:</strong> All availability, prices, waiting times, and facility data presented in CareFlow are simulated for prototyping purposes. Do not use this prototype for real medical emergencies or critical healthcare diagnoses. In case of an emergency, immediately dial <strong>108 / 112</strong> or proceed to the nearest emergency room.
+        </div>
+      </div>
+
+      <!-- Copyright Bar -->
+      <div class="footer-bottom-bar">
+        <span>© 2026 CareFlow Healthcare Technology. All rights reserved.</span>
+        <span>Simulated Healthcare Availability Engine • Prototype Demonstration</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Mobile Bottom Quick Navigation (Requirement 19) -->
+  <nav class="mobile-nav-bar" aria-label="Mobile Navigation">
+    <button class="mobile-nav-item active" onclick="app.switchView('home')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="mobile-nav-item" onclick="app.switchView('facilities')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
+      <span>Hospitals</span>
+    </button>
+    <button class="mobile-nav-item" onclick="app.switchView('doctors')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="7" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg>
+      <span>Doctors</span>
+    </button>
+    <button class="mobile-nav-item" onclick="app.switchView('labs')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14.5 2v17.5c0 1.4-1.1 2.5-2.5 2.5s-2.5-1.1-2.5-2.5V2"/></svg>
+      <span>Tests</span>
+    </button>
+    <button class="mobile-nav-item emergency-mobile-btn" onclick="app.toggleEmergencyMode()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      <span>SOS</span>
+    </button>
+  </nav>
+
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
